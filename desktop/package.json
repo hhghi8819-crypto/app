@@ -3,6 +3,10 @@
   "productName": "Avicenna Pharmacy",
   "version": "1.0.0",
   "description": "Fully offline desktop pharmacy management — Cashier + Storage. Data stored locally.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hhghi8819-crypto/app.git"
+  },
   "main": "main.js",
   "author": "Avicenna Pharmacy",
   "license": "MIT",
