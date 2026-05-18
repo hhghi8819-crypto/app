@@ -70,6 +70,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ""
           CSC_KEY_PASSWORD: ""
+          ELECTRON_BUILDER_ALLOW_UNRESOLVED_DEPENDENCIES: true
 
       # ---------- Upload artifacts so you can download them ----------
       - name: Upload installer .exe
