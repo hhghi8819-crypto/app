@@ -179,6 +179,35 @@ function getDbPath() {
     return DB_PATH;
 }
 
+function exportAll() {
+    return {
+        version: 1,
+        app: 'Avicenna Pharmacy',
+        exported_at: nowIso(),
+        items: data.items,
+        sales: data.sales,
+    };
+}
+
+function importAll(payload) {
+    if (!payload || typeof payload !== 'object') {
+        throw new Error('Backup file is empty or unreadable');
+    }
+    if (!Array.isArray(payload.items)) {
+        throw new Error('Backup file is invalid: missing "items" list');
+    }
+    // Basic shape validation on each item
+    for (const it of payload.items) {
+        if (!it || typeof it !== 'object' || !it.id || !it.name) {
+            throw new Error('Backup file is invalid: malformed item entry');
+        }
+    }
+    data.items = payload.items;
+    data.sales = Array.isArray(payload.sales) ? payload.sales : [];
+    persist();
+    return { items: data.items.length, sales: data.sales.length };
+}
+
 module.exports = {
     init,
     listItems,
@@ -190,4 +219,6 @@ module.exports = {
     checkout,
     listSales,
     getDbPath,
+    exportAll,
+    importAll,
 };

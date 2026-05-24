@@ -3,6 +3,7 @@
 
 const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const db = require('./db');
 
 let mainWindow;
@@ -25,6 +26,48 @@ function wireIpc() {
     ipcMain.handle('sales:checkout', safe((payload) => db.checkout(payload)));
     ipcMain.handle('sales:list', safe(() => db.listSales()));
     ipcMain.handle('app:dbPath', safe(() => db.getDbPath()));
+
+    ipcMain.handle(
+        'backup:save',
+        safe(async () => {
+            const stamp = new Date().toISOString().slice(0, 10);
+            const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+                title: 'Save backup',
+                defaultPath: `avicenna-pharmacy-backup-${stamp}.json`,
+                filters: [{ name: 'Backup file', extensions: ['json'] }],
+            });
+            if (canceled || !filePath) return { canceled: true };
+            const payload = db.exportAll();
+            fs.writeFileSync(filePath, JSON.stringify(payload, null, 2), 'utf8');
+            return { canceled: false, path: filePath };
+        })
+    );
+
+    ipcMain.handle(
+        'backup:restore',
+        safe(async () => {
+            const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
+                title: 'Choose a backup file to restore',
+                properties: ['openFile'],
+                filters: [
+                    { name: 'Backup file', extensions: ['json'] },
+                    { name: 'All files', extensions: ['*'] },
+                ],
+            });
+            if (canceled || !filePaths || filePaths.length === 0) {
+                return { canceled: true };
+            }
+            const raw = fs.readFileSync(filePaths[0], 'utf8');
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch (_e) {
+                throw new Error('Selected file is not valid JSON');
+            }
+            const result = db.importAll(parsed);
+            return { canceled: false, ...result, path: filePaths[0] };
+        })
+    );
 }
 
 function createWindow() {

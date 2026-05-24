@@ -22,4 +22,6 @@ contextBridge.exposeInMainWorld('pharmacyAPI', {
     checkout: (payload) => call('sales:checkout', payload),
     listSales: () => call('sales:list'),
     dbPath: () => call('app:dbPath'),
+    backupSave: () => call('backup:save'),
+    backupRestore: () => call('backup:restore'),
 });
