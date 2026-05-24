@@ -146,6 +146,10 @@ function createItem(payload) {
         sheets_per_pack: hasSheets ? sheetsPerPack : null,
         sheet_selling_price: hasSheets ? Number(payload.sheet_selling_price) : null,
         loose_sheets: parseInt(payload.loose_sheets, 10) || 0,
+        buying_bill_number: payload.buying_bill_number
+            ? String(payload.buying_bill_number).trim()
+            : null,
+        expiry_date: payload.expiry_date ? String(payload.expiry_date).trim() : null,
     };
     data.items.push(item);
     persist();
@@ -166,6 +170,7 @@ function updateItem(id, payload) {
         'name', 'barcode', 'buying_price', 'selling_price',
         'supplier', 'type', 'stock_qty',
         'sheets_per_pack', 'sheet_selling_price', 'loose_sheets',
+        'buying_bill_number', 'expiry_date',
     ];
     for (const key of allowed) {
         if (updates[key] === undefined) continue;
@@ -181,7 +186,7 @@ function updateItem(id, payload) {
             } else {
                 data.items[idx][key] = parseInt(updates[key], 10) || 0;
             }
-        } else if (key === 'barcode') {
+        } else if (key === 'barcode' || key === 'buying_bill_number' || key === 'expiry_date') {
             data.items[idx][key] = updates[key] ? String(updates[key]).trim() : null;
         } else {
             data.items[idx][key] = String(updates[key]).trim();

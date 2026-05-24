@@ -34,6 +34,8 @@ class ItemBase(BaseModel):
     sheets_per_pack: Optional[int] = None
     sheet_selling_price: Optional[float] = None
     loose_sheets: int = 0
+    buying_bill_number: Optional[str] = None
+    expiry_date: Optional[str] = None
 
 
 class ItemCreate(ItemBase):
@@ -51,6 +53,8 @@ class ItemUpdate(BaseModel):
     sheets_per_pack: Optional[int] = None
     sheet_selling_price: Optional[float] = None
     loose_sheets: Optional[int] = None
+    buying_bill_number: Optional[str] = None
+    expiry_date: Optional[str] = None
 
 
 class Item(ItemBase):

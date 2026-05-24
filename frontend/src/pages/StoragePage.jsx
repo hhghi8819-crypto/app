@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Search, Pencil, Trash2, Package, Barcode, Layers } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, Package, Barcode, Layers, CalendarClock, Receipt } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,26 @@ const emptyForm = {
     sheets_per_pack: "",
     sheet_selling_price: "",
     loose_sheets: "",
+    buying_bill_number: "",
+    expiry_date: "",
+};
+
+// Returns: { label, level }  level: "expired" | "soon" | "ok" | "none"
+const expiryInfo = (iso) => {
+    if (!iso) return { label: "—", level: "none" };
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return { label: "—", level: "none" };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((d - today) / 86400000);
+    const label = d.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+    });
+    if (diffDays < 0) return { label: `Expired ${label}`, level: "expired" };
+    if (diffDays <= 30) return { label, level: "soon" };
+    return { label, level: "ok" };
 };
 
 const StoragePage = () => {
@@ -78,6 +98,8 @@ const StoragePage = () => {
             sheets_per_pack: it.sheets_per_pack ? String(it.sheets_per_pack) : "",
             sheet_selling_price: it.sheet_selling_price ? String(it.sheet_selling_price) : "",
             loose_sheets: it.loose_sheets ? String(it.loose_sheets) : "",
+            buying_bill_number: it.buying_bill_number || "",
+            expiry_date: it.expiry_date || "",
         });
         setOpen(true);
     };
@@ -108,6 +130,8 @@ const StoragePage = () => {
             sheets_per_pack: sheetsEnabled ? parseInt(form.sheets_per_pack, 10) : null,
             sheet_selling_price: sheetsEnabled ? parseFloat(form.sheet_selling_price) : null,
             loose_sheets: sheetsEnabled ? parseInt(form.loose_sheets || "0", 10) : 0,
+            buying_bill_number: form.buying_bill_number.trim() || null,
+            expiry_date: form.expiry_date || null,
         };
 
         setSaving(true);
@@ -151,6 +175,23 @@ const StoragePage = () => {
                 ? "bg-amber-100 text-amber-800 hover:bg-amber-100 low-stock"
                 : "bg-emerald-100 text-emerald-700 hover:bg-emerald-100";
         return <Badge className={`rounded-full ${cls}`}>{s.label}</Badge>;
+    };
+
+    const expiryBadge = (it) => {
+        const e = expiryInfo(it.expiry_date);
+        if (e.level === "none") return <span className="text-stone-300">—</span>;
+        const cls =
+            e.level === "expired"
+                ? "bg-rose-100 text-rose-700 hover:bg-rose-100"
+                : e.level === "soon"
+                ? "bg-amber-100 text-amber-800 hover:bg-amber-100 low-stock"
+                : "bg-stone-100 text-stone-700 hover:bg-stone-100";
+        return (
+            <Badge className={`rounded-full ${cls}`}>
+                <CalendarClock className="w-3 h-3 mr-1" />
+                {e.label}
+            </Badge>
+        );
     };
 
     const totals = useMemo(() => {
@@ -230,6 +271,7 @@ const StoragePage = () => {
                                 <th className="py-3 px-2 font-semibold text-right">Sell (Pack)</th>
                                 <th className="py-3 px-2 font-semibold text-right">Sell (Sheet)</th>
                                 <th className="py-3 px-2 font-semibold">Stock</th>
+                                <th className="py-3 px-2 font-semibold">Expiry</th>
                                 <th className="py-3 px-2 font-semibold text-right">Actions</th>
                             </tr>
                         </thead>
@@ -259,6 +301,12 @@ const StoragePage = () => {
                                                 {it.barcode}
                                             </div>
                                         )}
+                                        {it.buying_bill_number && (
+                                            <div className="text-xs text-stone-400 flex items-center gap-1 mt-0.5">
+                                                <Receipt className="w-3 h-3" />
+                                                Bill #{it.buying_bill_number}
+                                            </div>
+                                        )}
                                     </td>
                                     <td className="py-3 px-2 text-stone-600">{it.type}</td>
                                     <td className="py-3 px-2 text-stone-600">{it.supplier}</td>
@@ -274,6 +322,7 @@ const StoragePage = () => {
                                             : <span className="text-stone-300">—</span>}
                                     </td>
                                     <td className="py-3 px-2">{stockBadge(it)}</td>
+                                    <td className="py-3 px-2">{expiryBadge(it)}</td>
                                     <td className="py-3 px-2 text-right">
                                         <div className="inline-flex gap-1">
                                             <button
@@ -296,7 +345,7 @@ const StoragePage = () => {
                             ))}
                             {filtered.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="py-12 text-center text-stone-400">
+                                    <td colSpan={9} className="py-12 text-center text-stone-400">
                                         <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                         No items found.
                                     </td>
@@ -447,6 +496,29 @@ const StoragePage = () => {
                             <p className="text-xs text-stone-500">
                                 Leave "Sheets per pack" empty to sell this item only by the pack.
                             </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Field label="Buying Bill Number (optional)" testId="form-bill-number">
+                                <Input
+                                    data-testid="form-bill-number-input"
+                                    value={form.buying_bill_number}
+                                    onChange={(e) =>
+                                        onChange("buying_bill_number", e.target.value)
+                                    }
+                                    className="h-11 rounded-xl"
+                                    placeholder="e.g. INV-2026-0042"
+                                />
+                            </Field>
+                            <Field label="Expiry Date (optional)" testId="form-expiry">
+                                <Input
+                                    data-testid="form-expiry-input"
+                                    type="date"
+                                    value={form.expiry_date}
+                                    onChange={(e) => onChange("expiry_date", e.target.value)}
+                                    className="h-11 rounded-xl"
+                                />
+                            </Field>
                         </div>
 
                         <div>
